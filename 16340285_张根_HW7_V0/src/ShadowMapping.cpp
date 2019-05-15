@@ -26,6 +26,8 @@ void processInput(GLFWwindow *window) {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
 }
+int SCREEN_WIDTH = 1280;
+int SCREEN_HEIGHT = 960;
 
 int main()
 {
@@ -38,7 +40,7 @@ int main()
 
 	// 创建窗口对象，通知GLFW将窗口的上下文设置为当前线程的主上下文
 
-	GLFWwindow* window = glfwCreateWindow(800, 800, "CG_HW5", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "CG_HW5", NULL, NULL);
 	if (window == NULL)
 	{
 		std::cout << "Failed to create GLFW window" << std::endl;
@@ -57,7 +59,7 @@ int main()
 
 	// 定义渲染窗口尺寸大小
 
-	glViewport(0, 0, 800, 800);
+	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 
 	// 引入改变窗口大小的回调函数
 
@@ -633,11 +635,7 @@ int main()
 	ImGui::StyleColorsDark();
 
 	static int s = 0;
-	static float ambientStrength = 0.1;
-	static float diffuseStrength = 0.5;
-	static float specularStrength = 1.0;
-	static int shininess = 5;
-	static bool flag = true;
+	static int flag = true;
 	// 渲染循环
 
 	while (!glfwWindowShouldClose(window))
@@ -648,6 +646,9 @@ int main()
 		// 清空屏幕
 		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		glUseProgram(depthMap_shader_programme);
+		glUniform1i(glGetUniformLocation(depthMap_shader_programme, "flag"), flag);
 
 		// 把顶点变换到光空间
 
@@ -680,7 +681,8 @@ int main()
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 
 		// 方块深度贴图
-		model = glm::scale(model, glm::vec3(0.5f));
+		model = glm::scale(model, glm::vec3(0.2f));
+		model = glm::rotate(model, float(glfwGetTime()), glm::vec3(0, 1.0, 0));
 		glUniformMatrix4fv(glGetUniformLocation(lightSpace_shader_programme, "model"), 1, GL_FALSE, glm::value_ptr(model));
 		glBindVertexArray(cubeVAO);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
@@ -688,11 +690,11 @@ int main()
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 		// 渲染场景
-		glViewport(0, 0, 800, 800);
+		glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glUseProgram(shadowMapping_shader_programme);
 		glm::mat4 projection = glm::mat4(1.0f);
-		projection = glm::perspective(glm::radians(45.0f), (float)800.0 / (float)800.0, 0.1f, 100.0f);
+		projection = glm::perspective(glm::radians(45.0f), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
 		glm::mat4 view = glm::mat4(1.0f);
 		view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
 		glUniformMatrix4fv(glGetUniformLocation(shadowMapping_shader_programme, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
@@ -714,7 +716,8 @@ int main()
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 
 		// 方块场景贴图
-		model = glm::scale(model, glm::vec3(0.5f));
+		model = glm::scale(model, glm::vec3(0.2f));
+		model = glm::rotate(model, float(glfwGetTime()), glm::vec3(0, 1.0, 0));
 		glUniformMatrix4fv(glGetUniformLocation(shadowMapping_shader_programme, "model"), 1, GL_FALSE, glm::value_ptr(model));
 		glBindVertexArray(cubeVAO);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
@@ -729,15 +732,10 @@ int main()
 
 		// 设置GUI大小
 
-		ImGui::SetWindowSize(ImVec2(300, 170));
+		ImGui::SetWindowSize(ImVec2(300, 100));
 
-		ImGui::SliderFloat("ambient", &ambientStrength, 0.0f, 1.0f);
-		ImGui::SliderFloat("diffuse", &diffuseStrength, 0.0f, 1.0f);
-		ImGui::SliderFloat("specular", &specularStrength, 0.0f, 1.0f);
-		ImGui::SliderInt("shininess", &shininess, 1, 8);
-
-		ImGui::RadioButton("Phong Shading", &s, 0);
-		ImGui::RadioButton("LightSpace Shading", &s, 1);
+		ImGui::RadioButton("Orthogonal", &flag, 1);
+		ImGui::RadioButton("Perspective", &flag, 0);
 		ImGui::End();
 
 		// 渲染
